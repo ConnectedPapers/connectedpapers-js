@@ -20,7 +20,6 @@ export type GraphResponse = {
 	status: GraphResponseStatuses;
 	graph_json?: Graph;
 	progress?: number;
-	requests_remaining?: number;
 };
 
 const sleepTimeBetweenChecks = 1000;

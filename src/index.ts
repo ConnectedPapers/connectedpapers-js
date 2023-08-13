@@ -1,3 +1,3 @@
-export function sanity(): number {
-	return 1;
-}
+import {ConnectedPapersClient} from "./connected_papers_client";
+
+export {ConnectedPapersClient};
