@@ -42,7 +42,7 @@ this period won't be counted against your usage limit.
 Such repeated access is considered "free," and the paper
 in question is referred to as a "free access paper."
 
-# Supplying an API key
+## Supplying an API key
 There are two ways to supply an API key to the client:
 * Set the `CONNECTED_PAPERS_API_KEY` environment variable.
 ```bash
@@ -60,6 +60,17 @@ const client = new ConnectedPapersClient({access_token: "<your api key>"});
 ## Getting an API key
 To get an early-access API key, contact us at
 `hello@connectedpapers.com`.
+
+You can use the API key `TEST_TOKEN` to access the graph of
+the paper with ID `9397e7acd062245d37350f5c05faf56e9cfae0d6` for 
+testing purposes.
+
+## Paper IDs
+We use ShaIDs by [Semantic Scholar](https://www.semanticscholar.org/) as paper IDs.
+You can find the ShaID of a paper by going to its Semantic Scholar page and
+copying the ID from the URL. For example, the ShaID of the paper
+[DeepFruits: A Fruit Detection System Using Deep Neural Networks](https://www.semanticscholar.org/paper/DeepFruits%3A-A-Fruit-Detection-System-Using-Deep-Bargoti-Underwood/9397e7acd062245d37350f5c05faf56e9cfae0d6)
+is `9397e7acd062245d37350f5c05faf56e9cfae0d6`.
 
 ## Async iterator access
 The client also supports async iterator access to the API. This is useful for
