@@ -17,7 +17,7 @@ import { ConnectedPapersClient } from 'connectedpapers-js';
 
 const DEEPFRUITS_PAPER_ID = "9397e7acd062245d37350f5c05faf56e9cfae0d6"
 
-const client = new ConnectedPapersClient();
+const client = new ConnectedPapersClient({access_token: "TEST_TOKEN"});
 client.getGraph({paper_id: DEEPFRUITS_PAPER_ID, fresh_only: true}).then((paper) => {
   console.log(paper);
 });
