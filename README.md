@@ -21,7 +21,7 @@ const client = new ConnectedPapersClient();
 client.getGraph({paper_id: DEEPFRUITS_PAPER_ID, fresh_only: true}).then((paper) => {
   console.log(paper);
 });
-client.getRmainingUsages().then((remainingUses) => {
+client.getRemainingUsages().then((remainingUses) => {
   console.log(`Remaining uses: ${remainingUses}`);
 });
 client.getFreeAccessPapers().then((freeAccessPapers) => {
@@ -31,14 +31,31 @@ client.getFreeAccessPapers().then((freeAccessPapers) => {
 
 ## API
 The following async functions are part of the connected papers API:
-* `getPaper({paper_id: string, fresh_only: boolean})`: Returns the paper with the given id. If `fresh_only` is true, then if the graph is over 30 days old, the call will wait for a rebuild.
-* `getRmainingUsages()`: Returns the number of remaining usages for the current API key.
+* `getPaper({paper_id: string, fresh_only: boolean})`: Returns the paper with the given ID. If fresh_only is true, then if the graph is over 30 days old, the call will wait for a rebuild.
+* `getRemainingUsages()`: Returns the number of remaining usages for the current API key.
 * `getFreeAccessPapers()`: Returns the number of free access papers for the current API key.
 
 ## Free access papers
-If you have accessed a paper's graph in the last 30 days, 
-accessing it again will not count towards your usage limit
-on subsequent calls. This is called a free access paper.
+If you've already accessed a paper's graph within the past
+30 days, any additional access to the same graph during
+this period won't be counted against your usage limit.
+Such repeated access is considered "free," and the paper
+in question is referred to as a "free access paper."
+
+# Supplying an API key
+There are two ways to supply an API key to the client:
+* Set the `CONNECTED_PAPERS_API_KEY` environment variable.
+```bash
+export CONNECTED_PAPERS_API_KEY="<your api key>"
+```
+Then create the client without any arguments:
+```js
+const client = new ConnectedPapersClient();
+```
+* Pass the API key as an argument to the constructor:
+```js
+const client = new ConnectedPapersClient({access_token: "<your api key>"});
+```
 
 ## Async iterator access
 The client also supports async iterator access to the API. This is useful for
@@ -88,18 +105,3 @@ it will go throught the `GraphResponseStatuses.QUEUED`, `GraphResponseStatuses.I
 with the progress field set to the percentage of the graph build that is done. When
 the rebuild is done, the status will be `GraphResponseStatuses.FRESH_GRAPH` and the loop
 will stop. The `graph_json` field will have the graph at each of these responses.
-
-# Supplying an API key
-There are two ways to supply an API key to the client:
-* Set the `CONNECTED_PAPERS_API_KEY` environment variable.
-```bash
-export CONNECTED_PAPERS_API_KEY="<your api key>"
-```
-Then create the client without any arguments:
-```js
-const client = new ConnectedPapersClient();
-```
-* Pass the API key as an argument to the constructor:
-```js
-const client = new ConnectedPapersClient({access_token: "<your api key>"});
-```

@@ -114,7 +114,7 @@ export class ConnectedPapersClient {
 		return result;
 	}
 
-	public async getRmainingUsages(): Promise<number> {
+	public async getRemainingUsages(): Promise<number> {
 		try {
 			const response = await axios.get(`${this.serverAddr}/papers-api/remaining-usages`, {
 				headers: {'X-Api-Key': this.accessToken},

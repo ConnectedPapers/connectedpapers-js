@@ -3,7 +3,7 @@ import {Graph} from "../src/graph";
 
 async function getKeyRemainingUses(): Promise<number> {
   const client = new ConnectedPapersClient();
-  return client.getRmainingUsages();
+  return client.getRemainingUsages();
 }
 
 async function getFreeAccessPapers(): Promise<string[]> {

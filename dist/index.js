@@ -191,7 +191,7 @@ var ConnectedPapersClient = class {
       return result;
     });
   }
-  getRmainingUsages() {
+  getRemainingUsages() {
     return __async(this, null, function* () {
       try {
         const response = yield import_axios.default.get(`${this.serverAddr}/papers-api/remaining-usages`, {

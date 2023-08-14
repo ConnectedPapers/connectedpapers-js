@@ -1,3 +1,3 @@
-import {ConnectedPapersClient} from "./connected_papers_client";
+import {ConnectedPapersClient} from './connected_papers_client';
 
 export {ConnectedPapersClient};

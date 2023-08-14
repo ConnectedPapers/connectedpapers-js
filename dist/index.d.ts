@@ -107,7 +107,7 @@ declare class ConnectedPapersClient {
         paper_id: PaperId;
         fresh_only?: boolean;
     }): Promise<GraphResponse>;
-    getRmainingUsages(): Promise<number>;
+    getRemainingUsages(): Promise<number>;
     getFreeAccessPapers(): Promise<PaperId[]>;
 }
 
