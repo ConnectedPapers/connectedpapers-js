@@ -57,6 +57,10 @@ const client = new ConnectedPapersClient();
 const client = new ConnectedPapersClient({access_token: "<your api key>"});
 ```
 
+## Getting an API key
+To get an early-access API key, contact us at
+`hello@connectedpapers.com`.
+
 ## Async iterator access
 The client also supports async iterator access to the API. This is useful for
 tracking the progress of graph builds and getting existing as well as rebuilt papers.
