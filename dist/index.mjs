@@ -47,7 +47,7 @@ import axios from "axios";
 
 // src/consts.ts
 var testToken = "TEST_TOKEN";
-var defaultServerAddress = "https://api.connectedpapers.com";
+var defaultServerAddress = "https://rest.prod.connectedpapers.com";
 var _a;
 var accessToken = (_a = process.env.CONNECTED_PAPERS_API_KEY) != null ? _a : testToken;
 var _a2;
