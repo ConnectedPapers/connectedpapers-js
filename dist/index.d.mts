@@ -111,4 +111,4 @@ declare class ConnectedPapersClient {
     getFreeAccessPapers(): Promise<PaperId[]>;
 }
 
-export { ConnectedPapersClient };
+export { BasePaper, CommonAuthor, CommonCitation, CommonReference, ConnectedPapersClient, Edge, ExternalIds, Graph, Paper, PaperAuthor, PaperId };
