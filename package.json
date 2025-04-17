@@ -1,6 +1,6 @@
 {
   "name": "connectedpapers-js",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "The official client for the connected papers API",
   "main": "dist/index.js",
   "module": "./dist/index.mjs",
