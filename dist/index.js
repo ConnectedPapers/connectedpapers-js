@@ -100,10 +100,12 @@ var GraphResponseStatuses = /* @__PURE__ */ ((GraphResponseStatuses2) => {
   GraphResponseStatuses2["BAD_TOKEN"] = "BAD_TOKEN";
   GraphResponseStatuses2["BAD_REQUEST"] = "BAD_REQUEST";
   GraphResponseStatuses2["OUT_OF_REQUESTS"] = "OUT_OF_REQUESTS";
+  GraphResponseStatuses2["OVERLOADED"] = "OVERLOADED";
   return GraphResponseStatuses2;
 })(GraphResponseStatuses || {});
 var sleepTimeBetweenChecks = 1e3;
 var sleepTimeAfterError = 5e3;
+var overloadedRetryDelays = [5e3, 1e4, 2e4, 4e4];
 var endResponseStatuses = [
   "BAD_ID" /* BAD_ID */,
   "ERROR" /* ERROR */,
@@ -111,7 +113,8 @@ var endResponseStatuses = [
   "FRESH_GRAPH" /* FRESH_GRAPH */,
   "BAD_TOKEN" /* BAD_TOKEN */,
   "BAD_REQUEST" /* BAD_REQUEST */,
-  "OUT_OF_REQUESTS" /* OUT_OF_REQUESTS */
+  "OUT_OF_REQUESTS" /* OUT_OF_REQUESTS */,
+  "OVERLOADED" /* OVERLOADED */
 ];
 var ConnectedPapersClient = class {
   constructor(args = {}) {
@@ -121,14 +124,16 @@ var ConnectedPapersClient = class {
   }
   getGraphAsyncIterator(args) {
     return __asyncGenerator(this, null, function* () {
-      var _a3;
+      var _a3, _b;
+      const retryOnOverloaded = (_a3 = args.retry_on_overloaded) != null ? _a3 : true;
       let retryCounter = 3;
+      let overloadedRetryCounter = 0;
       while (retryCounter > 0) {
         try {
           let newestGraph;
           while (true) {
             const resp = yield new __await(import_axios.default.get(
-              `${this.serverAddr}/papers-api/graph/${Number((_a3 = args.fresh_only) != null ? _a3 : false)}/${args.paper_id}`,
+              `${this.serverAddr}/papers-api/graph/${Number((_b = args.fresh_only) != null ? _b : false)}/${args.paper_id}`,
               { headers: { "X-Api-Key": this.accessToken } }
             ));
             if (resp.status !== 200) {
@@ -145,6 +150,15 @@ var ConnectedPapersClient = class {
             const response = data;
             if (response.graph_json) {
               newestGraph = response.graph_json;
+            }
+            if (response.status === "OVERLOADED" /* OVERLOADED */ && retryOnOverloaded && overloadedRetryCounter < overloadedRetryDelays.length) {
+              const delay = overloadedRetryDelays[overloadedRetryCounter];
+              overloadedRetryCounter += 1;
+              yield new __await(new Promise((resolve) => setTimeout(resolve, delay)));
+              continue;
+            }
+            if (response.status !== "OVERLOADED" /* OVERLOADED */) {
+              overloadedRetryCounter = 0;
             }
             if (endResponseStatuses.includes(response.status) || !args.loop_until_fresh) {
               yield response;

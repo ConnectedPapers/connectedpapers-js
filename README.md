@@ -31,7 +31,7 @@ client.getFreeAccessPapers().then((freeAccessPapers) => {
 
 ## API
 The following async functions are part of the connected papers API:
-* `getPaper({paper_id: string, fresh_only: boolean})`: Returns the paper with the given ID. If fresh_only is true, then if the graph is over 30 days old, the call will wait for a rebuild.
+* `getGraph({paper_id: string, fresh_only?: boolean, retry_on_overloaded?: boolean})`: Returns the paper with the given ID. If fresh_only is true, then if the graph is over 30 days old, the call will wait for a rebuild. If retry_on_overloaded is true (default), automatically retries when receiving OVERLOADED status.
 * `getRemainingUsages()`: Returns the number of remaining usages for the current API key.
 * `getFreeAccessPapers()`: Returns the number of free access papers for the current API key.
 
@@ -41,6 +41,40 @@ If you've already accessed a paper's graph within the past
 this period won't be counted against your usage limit.
 Such repeated access is considered "free," and the paper
 in question is referred to as a "free access paper."
+
+## Rate Limiting and OVERLOADED Status
+
+The Connected Papers API implements per-API-key rate limiting (default: 5 builds per minute). When rate limits are exceeded or the system is overloaded, the API returns an `OVERLOADED` status.
+
+### Automatic Retry on OVERLOADED
+
+By default, the client automatically retries requests when receiving an `OVERLOADED` status with exponential backoff delays:
+- 1st retry: 5 seconds
+- 2nd retry: 10 seconds
+- 3rd retry: 20 seconds
+- 4th retry: 40 seconds
+
+After 4 retry attempts, the `OVERLOADED` status is returned to the caller.
+
+### Disabling Automatic Retry
+
+You can disable automatic retry by setting `retry_on_overloaded: false`:
+
+```js
+const response = await client.getGraph({
+  paper_id: PAPER_ID,
+  fresh_only: true,
+  retry_on_overloaded: false
+});
+
+if (response.status === GraphResponseStatuses.OVERLOADED) {
+  console.log("System is overloaded, please try again later");
+}
+```
+
+### Higher Rate Limits
+
+If you need higher rate limits for your use case, please contact us at `hello@connectedpapers.com`.
 
 ## Supplying an API key
 There are two ways to supply an API key to the client:
@@ -90,6 +124,7 @@ export enum GraphResponseStatuses {
   BAD_TOKEN = 'BAD_TOKEN',
   BAD_REQUEST = 'BAD_REQUEST',
   OUT_OF_REQUESTS = 'OUT_OF_REQUESTS',
+  OVERLOADED = 'OVERLOADED',
 }
 
 export type GraphResponse = {
@@ -98,7 +133,7 @@ export type GraphResponse = {
   progress?: number;
 };
 ```
-Once the status is one of `BAD_ID`, `ERROR`, `NOT_IN_DB`, `BAD_TOKEN`, `BAD_REQUEST`, `OUT_OF_REQUESTS`,
+Once the status is one of `BAD_ID`, `ERROR`, `NOT_IN_DB`, `BAD_TOKEN`, `BAD_REQUEST`, `OUT_OF_REQUESTS`, or `OVERLOADED` (after retries if enabled),
 the iterator will stop yielding values.
 
 Signature:
@@ -108,7 +143,8 @@ class ConnectedPapersClient {
   public async* getGraphAsyncIterator(args: {
     paper_id: PaperId;
     fresh_only?: boolean;
-    loop_until_fresh?: boolean
+    loop_until_fresh?: boolean;
+    retry_on_overloaded?: boolean;
   }): AsyncGenerator<GraphResponse>;
 }
 ```
