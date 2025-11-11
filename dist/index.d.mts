@@ -84,7 +84,8 @@ declare enum GraphResponseStatuses {
     QUEUED = "QUEUED",
     BAD_TOKEN = "BAD_TOKEN",
     BAD_REQUEST = "BAD_REQUEST",
-    OUT_OF_REQUESTS = "OUT_OF_REQUESTS"
+    OUT_OF_REQUESTS = "OUT_OF_REQUESTS",
+    OVERLOADED = "OVERLOADED"
 }
 type GraphResponse = {
     status: GraphResponseStatuses;
@@ -102,10 +103,12 @@ declare class ConnectedPapersClient {
         paper_id: PaperId;
         fresh_only?: boolean;
         loop_until_fresh?: boolean;
+        retry_on_overloaded?: boolean;
     }): AsyncGenerator<GraphResponse>;
     getGraph(args: {
         paper_id: PaperId;
         fresh_only?: boolean;
+        retry_on_overloaded?: boolean;
     }): Promise<GraphResponse>;
     getRemainingUsages(): Promise<number>;
     getFreeAccessPapers(): Promise<PaperId[]>;

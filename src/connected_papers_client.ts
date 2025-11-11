@@ -14,6 +14,7 @@ export enum GraphResponseStatuses {
 	BAD_TOKEN = 'BAD_TOKEN',
 	BAD_REQUEST = 'BAD_REQUEST',
 	OUT_OF_REQUESTS = 'OUT_OF_REQUESTS',
+	OVERLOADED = 'OVERLOADED',
 }
 
 export type GraphResponse = {
@@ -24,6 +25,7 @@ export type GraphResponse = {
 
 const sleepTimeBetweenChecks = 1000;
 const sleepTimeAfterError = 5000;
+const overloadedRetryDelays = [5000, 10000, 20000, 40000]; // 5s, 10s, 20s, 40s
 
 const endResponseStatuses = [
 	GraphResponseStatuses.BAD_ID,
@@ -33,6 +35,7 @@ const endResponseStatuses = [
 	GraphResponseStatuses.BAD_TOKEN,
 	GraphResponseStatuses.BAD_REQUEST,
 	GraphResponseStatuses.OUT_OF_REQUESTS,
+	GraphResponseStatuses.OVERLOADED,
 ];
 
 export class ConnectedPapersClient {
@@ -44,9 +47,12 @@ export class ConnectedPapersClient {
 		this.serverAddr = args.server_addr ?? connectedPapersRestApi;
 	}
 
-	public async * getGraphAsyncIterator(args: {paper_id: PaperId; fresh_only?: boolean; loop_until_fresh?: boolean}): AsyncGenerator<GraphResponse> {
+	public async * getGraphAsyncIterator(args: {paper_id: PaperId; fresh_only?: boolean; loop_until_fresh?: boolean; retry_on_overloaded?: boolean}): AsyncGenerator<GraphResponse> {
+		const retryOnOverloaded = args.retry_on_overloaded ?? true;
 		let retryCounter = 3;
+
 		while (retryCounter > 0) {
+			let overloadedRetryCounter = 0;
 			try {
 				let newestGraph: Graph | undefined;
 				while (true) {
@@ -76,6 +82,20 @@ export class ConnectedPapersClient {
 						newestGraph = response.graph_json;
 					}
 
+					// Handle OVERLOADED status with retry logic
+					if (response.status === GraphResponseStatuses.OVERLOADED && retryOnOverloaded && overloadedRetryCounter < overloadedRetryDelays.length) {
+						const delay = overloadedRetryDelays[overloadedRetryCounter];
+						overloadedRetryCounter += 1;
+						// eslint-disable-next-line no-await-in-loop, no-promise-executor-return
+						await new Promise(resolve => setTimeout(resolve, delay));
+						continue;
+					}
+
+					// Reset overloaded retry counter on successful response
+					if (response.status !== GraphResponseStatuses.OVERLOADED) {
+						overloadedRetryCounter = 0;
+					}
+
 					// eslint-disable-next-line no-constant-binary-expression
 					if (endResponseStatuses.includes(response.status) || ((!args.loop_until_fresh) ?? true)) {
 						yield response;
@@ -99,7 +119,7 @@ export class ConnectedPapersClient {
 		}
 	}
 
-	public async getGraph(args: {paper_id: PaperId; fresh_only?: boolean}): Promise<GraphResponse> {
+	public async getGraph(args: {paper_id: PaperId; fresh_only?: boolean; retry_on_overloaded?: boolean}): Promise<GraphResponse> {
 		const generator = this.getGraphAsyncIterator(args);
 		let result: GraphResponse = {
 			status: GraphResponseStatuses.ERROR,
