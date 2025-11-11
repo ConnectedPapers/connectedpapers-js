@@ -50,9 +50,9 @@ export class ConnectedPapersClient {
 	public async * getGraphAsyncIterator(args: {paper_id: PaperId; fresh_only?: boolean; loop_until_fresh?: boolean; retry_on_overloaded?: boolean}): AsyncGenerator<GraphResponse> {
 		const retryOnOverloaded = args.retry_on_overloaded ?? true;
 		let retryCounter = 3;
-		let overloadedRetryCounter = 0;
 
 		while (retryCounter > 0) {
+			let overloadedRetryCounter = 0;
 			try {
 				let newestGraph: Graph | undefined;
 				while (true) {

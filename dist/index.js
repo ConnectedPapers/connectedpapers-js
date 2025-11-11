@@ -127,8 +127,8 @@ var ConnectedPapersClient = class {
       var _a3, _b;
       const retryOnOverloaded = (_a3 = args.retry_on_overloaded) != null ? _a3 : true;
       let retryCounter = 3;
-      let overloadedRetryCounter = 0;
       while (retryCounter > 0) {
+        let overloadedRetryCounter = 0;
         try {
           let newestGraph;
           while (true) {
