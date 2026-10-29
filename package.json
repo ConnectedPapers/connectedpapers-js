@@ -15,7 +15,9 @@
   "scripts": {
     "build": "tsup",
     "lint": "eslint src/ --ext .ts --fix",
-    "test": "jest"
+    "lint:check": "eslint src/ --ext .ts",
+    "test": "jest",
+    "test:integration": "jest --config jest.integration.config.js --runInBand"
   },
   "devDependencies": {
     "@types/jest": "^29.5.3",

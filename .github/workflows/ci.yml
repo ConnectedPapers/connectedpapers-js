@@ -1,0 +1,31 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [master]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24, 26]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install --global yarn@1.22.22
+      - run: yarn install --frozen-lockfile --non-interactive
+      - run: yarn test --runInBand
+      - run: yarn lint:check
+      - run: yarn build
+      - name: Check CommonJS, ESM and declarations
+        run: |
+          node -e "const assert = require('node:assert/strict'); const sdk = require('.'); assert.equal(typeof sdk.ConnectedPapersClient, 'function')"
+          node --input-type=module -e "import assert from 'node:assert/strict'; import {ConnectedPapersClient} from './dist/index.mjs'; assert.equal(typeof ConnectedPapersClient, 'function')"
+          test -s dist/index.d.ts && test -s dist/index.d.mts
+          npm pack --dry-run
