@@ -49,6 +49,23 @@ describe('client HTTP transport', () => {
     expect(requests).toEqual([{url: '/papers-api/remaining-usages', key: 'local-test-key'}]);
   });
 
+  it('fetches free-access paper IDs with authentication', async () => {
+    payload = {papers: ['first', 'second']};
+    await expect(client.getFreeAccessPapers()).resolves.toEqual(['first', 'second']);
+    expect(requests).toEqual([{url: '/papers-api/free-access-papers', key: 'local-test-key'}]);
+  });
+
+  it('rejects a malformed remaining-usage response', async () => {
+    payload = {remaining_uses: '7'};
+    const log = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      await expect(client.getRemainingUsages()).rejects.toThrow();
+      expect(requests).toHaveLength(1);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it('preserves HTTP authentication errors', async () => {
     statusCode = 401;
     payload = {error: 'bad token'};

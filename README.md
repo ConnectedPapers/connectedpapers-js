@@ -1,6 +1,19 @@
 # connectedpapers-js
 The JS client for the connected papers API.
 
+## Development and CI
+
+Use Yarn 1 (`yarn install --frozen-lockfile`). `yarn test --runInBand` runs
+offline HTTP fixture and fake-timer tests; no API key or graph quota is needed.
+CI runs these tests and `yarn build` on Node 22, 24 and 26, then checks the
+CommonJS/ESM entry points, declarations and package contents. No Node engine
+minimum is currently declared by the package; this matrix describes CI coverage.
+CI also runs `yarn lint:check`, which checks source without modifying files.
+
+For an explicit live check, set `CONNECTED_PAPERS_API_KEY` and run
+`yarn test:integration`. This contacts the real API and may use graph quota.
+Without a key the live test is skipped. Do not run it in ordinary CI.
+
 ## Installation
 For npm:
 ```bash
