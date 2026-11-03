@@ -3,16 +3,75 @@ The JS client for the connected papers API.
 
 ## Development and CI
 
-Use Yarn 1 (`yarn install --frozen-lockfile`). `yarn test --runInBand` runs
-offline HTTP fixture and fake-timer tests; no API key or graph quota is needed.
-CI runs these tests and `yarn build` on Node 22, 24 and 26, then checks the
-CommonJS/ESM entry points, declarations and package contents. No Node engine
-minimum is currently declared by the package; this matrix describes CI coverage.
-CI also runs `yarn lint:check`, which checks source without modifying files.
+Use Node 26 and Yarn 1.22.22 to develop the SDK:
+
+```bash
+yarn install --frozen-lockfile
+yarn typecheck
+yarn lint:check
+yarn test --runInBand
+yarn build
+yarn test:package
+```
+
+`yarn typecheck` runs native TypeScript 7 through the `@typescript/native` alias.
+The `typescript` dependency aliases Microsoft's `@typescript/typescript6`
+compatibility package, which supplies the classic compiler API needed by
+TypeScript ESLint, ts-jest and declaration generation. Keep both packages until
+those integrations support the native compiler API; the bridge is intentional.
+
+The maintained XO flat config includes TypeScript rules and formatting. Use
+`yarn lint` to apply fixes; `yarn lint:check` does not modify files. The 19 Jest
+HTTP fixture and fake-timer tests are offline and need no API key or graph quota.
+
+`tsdown` builds CommonJS, ESM, declarations and source maps. `yarn test:package`
+installs the actual tarball outside the checkout, makes localhost HTTP calls
+through both module formats, and compiles CJS/ESM consumers using native TS7
+and the classic compiler. CI runs the frozen-lock checks on Linux Node 22, 24
+and 26, plus Windows Node 22 and 26. Generated `dist` files are not committed;
+`prepack` builds them for packaging. Publishing remains a separate action.
+
+## Runtime support
+
+The SDK requires Node 22 or newer. We qualify the latest patches of maintained
+Node release families, currently 22, 24 and 26, separately from the Node 26 build
+runtime. Keep this policy, package engines and the CI matrix aligned during
+maintenance. The CJS/ESM entry filenames and existing published subpaths remain
+available, including the existing default-import interop at the package root.
+Explicit ESM imports use `connectedpapers-js/dist/index.mjs` and its matching
+declarations.
+
+This unreleased maintenance update replaces the previously unspecified Node
+minimum with Node >=22. The package version remains unchanged until release.
 
 For an explicit live check, set `CONNECTED_PAPERS_API_KEY` and run
 `yarn test:integration`. This contacts the real API and may use graph quota.
 Without a key the live test is skipped. Do not run it in ordinary CI.
+
+## Dependency maintenance notes
+
+The full lock refresh removes the high-severity matches observed during this
+migration. The runtime-only audit reports no advisory matches. The
+full development audit still reports low/moderate findings in these upstream
+constraints (checked 3 November 2026):
+
+- ESLint and TypeScript ESLint retain [minimatch](https://github.com/advisories/GHSA-g3hv-75wg-m249)
+  majors below patched 11.x. Jest/Babel coverage tooling retains
+  [glob](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4) majors below patched 14.x;
+  even current test-exclude 8 still selects glob 13/minimatch 10.
+- XO's Markdown dependency selects micromark-extension-math 3, which constrains
+  [KaTeX](https://github.com/advisories/GHSA-238p-pmpm-9mq7) to 0.16; the reported fix is in a newer incompatible line. SDK lint is
+  scoped to TypeScript source, not Markdown rendering.
+- Jest's configuration loader uses [deepmerge](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)
+  4.3.1, for which the advisory
+  currently lists no fixed release.
+
+Recheck released parent dependencies when these constraints change, refresh the
+compatible lock and rerun the existing checks. These are unresolved development
+findings, not a zero-advisory exception or evidence of runtime exposure. Do not
+force incompatible transitive majors just to silence the audit. The runtime
+and development graphs can be checked separately with `yarn audit --groups
+dependencies` and `yarn audit`.
 
 ## Installation
 For npm:

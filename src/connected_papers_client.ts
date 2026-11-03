@@ -1,7 +1,6 @@
 import axios from 'axios';
-
-import {accessToken, connectedPapersRestApi} from './consts';
-import {type Graph, type PaperId} from './graph';
+import {accessToken, connectedPapersRestApi} from './consts.js';
+import {type Graph, type PaperId} from './graph.js';
 
 export enum GraphResponseStatuses {
 	BAD_ID = 'BAD_ID',
@@ -25,9 +24,9 @@ export type GraphResponse = {
 
 const sleepTimeBetweenChecks = 1000;
 const sleepTimeAfterError = 5000;
-const overloadedRetryDelays = [5000, 10000, 20000, 40000]; // 5s, 10s, 20s, 40s
+const overloadedRetryDelays = [5000, 10_000, 20_000, 40_000]; // 5s, 10s, 20s, 40s
 
-const endResponseStatuses = [
+const endResponseStatuses = new Set([
 	GraphResponseStatuses.BAD_ID,
 	GraphResponseStatuses.ERROR,
 	GraphResponseStatuses.NOT_IN_DB,
@@ -36,7 +35,7 @@ const endResponseStatuses = [
 	GraphResponseStatuses.BAD_REQUEST,
 	GraphResponseStatuses.OUT_OF_REQUESTS,
 	GraphResponseStatuses.OVERLOADED,
-];
+]);
 
 export class ConnectedPapersClient {
 	private readonly accessToken: string;
@@ -47,8 +46,13 @@ export class ConnectedPapersClient {
 		this.serverAddr = args.server_addr ?? connectedPapersRestApi;
 	}
 
-	public async * getGraphAsyncIterator(args: {paper_id: PaperId; fresh_only?: boolean; loop_until_fresh?: boolean; retry_on_overloaded?: boolean}): AsyncGenerator<GraphResponse> {
-		const retryOnOverloaded = args.retry_on_overloaded ?? true;
+	public async *getGraphAsyncIterator(args: {
+		paper_id: PaperId;
+		fresh_only?: boolean;
+		loop_until_fresh?: boolean;
+		retry_on_overloaded?: boolean;
+	}): AsyncGenerator<GraphResponse> {
+		const shouldRetryOnOverloaded = args.retry_on_overloaded ?? true;
 		let retryCounter = 3;
 
 		while (retryCounter > 0) {
@@ -56,8 +60,8 @@ export class ConnectedPapersClient {
 			try {
 				let newestGraph: Graph | undefined;
 				while (true) {
-					// eslint-disable-next-line no-await-in-loop
-					const resp = await axios.get(
+					// eslint-disable-next-line no-await-in-loop, @typescript-eslint/no-restricted-types -- Poll sequentially; empty JSON may be null.
+					const resp = await axios.get<GraphResponse | null | undefined>(
 						`${this.serverAddr}/papers-api/graph/${Number(args.fresh_only ?? false)}/${args.paper_id}`,
 						{headers: {'X-Api-Key': this.accessToken}},
 					);
@@ -65,29 +69,33 @@ export class ConnectedPapersClient {
 						throw new Error(`Bad response: ${resp.status}`);
 					}
 
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 					const {data} = resp;
 					if (!data) {
 						throw new Error(`Bad response: ${resp.status}`);
 					}
 
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 					if (!Object.values(GraphResponseStatuses).includes(data.status)) {
 						data.status = GraphResponseStatuses.ERROR;
 					}
 
 					args.fresh_only = true;
-					const response: GraphResponse = data as GraphResponse;
+					const response = data;
 					if (response.graph_json) {
 						newestGraph = response.graph_json;
 					}
 
 					// Handle OVERLOADED status with retry logic
-					if (response.status === GraphResponseStatuses.OVERLOADED && retryOnOverloaded && overloadedRetryCounter < overloadedRetryDelays.length) {
+					if (
+						shouldRetryOnOverloaded &&
+						response.status === GraphResponseStatuses.OVERLOADED &&
+						overloadedRetryCounter < overloadedRetryDelays.length
+					) {
 						const delay = overloadedRetryDelays[overloadedRetryCounter];
 						overloadedRetryCounter += 1;
-						// eslint-disable-next-line no-await-in-loop, no-promise-executor-return
-						await new Promise(resolve => setTimeout(resolve, delay));
+						// eslint-disable-next-line no-await-in-loop
+						await new Promise((resolve) => {
+							setTimeout(resolve, delay);
+						});
 						continue;
 					}
 
@@ -96,30 +104,40 @@ export class ConnectedPapersClient {
 						overloadedRetryCounter = 0;
 					}
 
-					// eslint-disable-next-line no-constant-binary-expression
-					if (endResponseStatuses.includes(response.status) || ((!args.loop_until_fresh) ?? true)) {
+					if (
+						endResponseStatuses.has(response.status) ||
+						!args.loop_until_fresh
+					) {
 						yield response;
 						return;
 					}
 
 					response.graph_json = newestGraph;
 					yield response;
-					// eslint-disable-next-line no-await-in-loop, no-promise-executor-return
-					await new Promise(resolve => setTimeout(resolve, sleepTimeBetweenChecks));
+					// eslint-disable-next-line no-await-in-loop
+					await new Promise((resolve) => {
+						setTimeout(resolve, sleepTimeBetweenChecks);
+					});
 				}
-			} catch (e) {
+			} catch (error) {
 				retryCounter -= 1;
 				if (retryCounter === 0) {
-					throw e;
+					throw error;
 				}
 
-				// eslint-disable-next-line no-await-in-loop, no-promise-executor-return
-				await new Promise(resolve => setTimeout(resolve, sleepTimeAfterError));
+				// eslint-disable-next-line no-await-in-loop
+				await new Promise((resolve) => {
+					setTimeout(resolve, sleepTimeAfterError);
+				});
 			}
 		}
 	}
 
-	public async getGraph(args: {paper_id: PaperId; fresh_only?: boolean; retry_on_overloaded?: boolean}): Promise<GraphResponse> {
+	public async getGraph(args: {
+		paper_id: PaperId;
+		fresh_only?: boolean;
+		retry_on_overloaded?: boolean;
+	}): Promise<GraphResponse> {
 		const generator = this.getGraphAsyncIterator(args);
 		let result: GraphResponse = {
 			status: GraphResponseStatuses.ERROR,
@@ -136,20 +154,23 @@ export class ConnectedPapersClient {
 
 	public async getRemainingUsages(): Promise<number> {
 		try {
-			const response = await axios.get(`${this.serverAddr}/papers-api/remaining-usages`, {
-				headers: {'X-Api-Key': this.accessToken},
-			});
+			const response = await axios.get<{remaining_uses: unknown}>(
+				`${this.serverAddr}/papers-api/remaining-usages`,
+				{
+					headers: {'X-Api-Key': this.accessToken},
+				},
+			);
 
 			if (response.status !== 200) {
 				throw new Error(`Bad response: ${response.status}`);
 			}
 
-			switch (typeof response.data.remaining_uses) {
-				case 'number':
-					return response.data.remaining_uses as number;
-				default:
-					throw new Error(`Bad response: ${JSON.stringify(response)}`);
+			if (typeof response.data.remaining_uses !== 'number') {
+				// eslint-disable-next-line unicorn/prefer-type-error -- Preserve the existing response error type.
+				throw new Error(`Bad response: ${JSON.stringify(response)}`);
 			}
+
+			return response.data.remaining_uses;
 		} catch (error) {
 			// Handle error as needed
 			console.error(error);
@@ -159,15 +180,18 @@ export class ConnectedPapersClient {
 
 	public async getFreeAccessPapers(): Promise<PaperId[]> {
 		try {
-			const response = await axios.get(`${this.serverAddr}/papers-api/free-access-papers`, {
-				headers: {'X-Api-Key': this.accessToken},
-			});
+			const response = await axios.get<{papers: PaperId[]}>(
+				`${this.serverAddr}/papers-api/free-access-papers`,
+				{
+					headers: {'X-Api-Key': this.accessToken},
+				},
+			);
 
 			if (response.status !== 200) {
 				throw new Error(`Bad response: ${response.status}`);
 			}
 
-			return response.data.papers as PaperId[];
+			return response.data.papers;
 		} catch (error) {
 			// Handle error as needed
 			console.error(error);

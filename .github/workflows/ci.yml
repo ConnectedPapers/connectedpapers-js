@@ -7,25 +7,28 @@ permissions:
   contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         node: [22, 24, 26]
+        include:
+          - os: windows-latest
+            node: 22
+          - os: windows-latest
+            node: 26
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
+          check-latest: true
       - run: npm install --global yarn@1.22.22
       - run: yarn install --frozen-lockfile --non-interactive
-      - run: yarn test --runInBand
+      - run: yarn typecheck
       - run: yarn lint:check
+      - run: yarn test --runInBand
       - run: yarn build
-      - name: Check CommonJS, ESM and declarations
-        run: |
-          node -e "const assert = require('node:assert/strict'); const sdk = require('.'); assert.equal(typeof sdk.ConnectedPapersClient, 'function')"
-          node --input-type=module -e "import assert from 'node:assert/strict'; import {ConnectedPapersClient} from './dist/index.mjs'; assert.equal(typeof ConnectedPapersClient, 'function')"
-          test -s dist/index.d.ts && test -s dist/index.d.mts
-          npm pack --dry-run
+      - run: yarn test:package
